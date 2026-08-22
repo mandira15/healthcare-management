@@ -1,0 +1,162 @@
+// Prisma schema for Healthcare Appointment & Follow-up Manager
+// Database: SQLite (free-tier, file-based)
+// Key design decisions:
+//   - Appointment.@@unique([doctorId, date, startTime]) enables atomic double-booking prevention
+//     via P2002 unique-constraint error caught in Prisma transactions.
+//   - workingHours stored as JSON string (e.g. {"mon":{"start":"09:00","end":"17:00"},...})
+//   - leaveDates stored as JSON string array (e.g. ["2024-12-25","2024-12-26"])
+//   - preVisitSummary and prescription stored as JSON strings (Gemini output)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// Enums (SQLite doesn't support native enums;
+// enforced at application layer via Zod)
+// ─────────────────────────────────────────────
+
+// ─────────────────────────────────────────────
+// Core models
+// ─────────────────────────────────────────────
+
+model User {
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  passwordHash       String
+  name               String
+  /// "PATIENT" | "DOCTOR" | "ADMIN"
+  role               String    @default("PATIENT")
+  /// Google Calendar refresh token — null means Calendar not connected
+  googleRefreshToken String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  doctorProfile        DoctorProfile?
+  appointmentsAsPatient Appointment[] @relation("PatientAppointments")
+  appointmentsAsDoctor  Appointment[] @relation("DoctorAppointments")
+  medicationReminders  MedicationReminder[]
+  emailLogs            EmailLog[]
+
+  @@map("users")
+}
+
+model DoctorProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialization     String
+  /// JSON: {"mon":{"start":"09:00","end":"17:00"},"tue":{"start":"09:00","end":"17:00"}}
+  /// Absent keys mean the doctor doesn't work that day.
+  /// Day keys: "mon","tue","wed","thu","fri","sat","sun"
+  workingHours       String   @default("{}")
+  slotDurationMinutes Int     @default(30)
+  /// JSON array of ISO date strings: ["2024-12-25","2025-01-01"]
+  leaveDates         String   @default("[]")
+  bio                String?
+  clinicName         String?
+  clinicAddress      String?
+  phone              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("doctor_profiles")
+}
+
+model Appointment {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     User     @relation("PatientAppointments", fields: [patientId], references: [id])
+  doctorId    String
+  doctor      User     @relation("DoctorAppointments", fields: [doctorId], references: [id])
+
+  /// ISO date string: "2024-12-15"
+  date        String
+  /// 24-hour time: "09:00"
+  startTime   String
+  /// 24-hour time: "09:30"
+  endTime     String
+
+  /// "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED"
+  status      String   @default("CONFIRMED")
+
+  /// Patient-reported symptoms before visit
+  symptomText String?
+
+  /// JSON: Gemini pre-visit output — {"urgencyLevel","chiefComplaint","suggestedQuestions":[]}
+  /// On Gemini failure: {"error":"AI summary unavailable, please review manually"}
+  preVisitSummary String?
+
+  /// Doctor's raw clinical notes entered post-visit
+  postVisitNotes  String?
+
+  /// JSON: Gemini post-visit output — {"summary","medicationSchedule":[...],"followUpSteps":[]}
+  /// On Gemini failure: {"error":"AI summary unavailable, please review manually"}
+  postVisitSummary String?
+
+  /// JSON: prescription object derived from post-visit Gemini output
+  prescription     String?
+
+  /// Google Calendar event IDs — null if Calendar not connected
+  googleEventIdPatient String?
+  googleEventIdDoctor  String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  medicationReminders MedicationReminder[]
+
+  /// DOUBLE-BOOKING PREVENTION:
+  /// This compound unique index guarantees that no two appointments can share
+  /// the same doctor, date, and start time. The booking API wraps the INSERT
+  /// inside a Prisma transaction and catches P2002 errors to return HTTP 409.
+  @@unique([doctorId, date, startTime])
+  @@map("appointments")
+}
+
+model EmailLog {
+  id          String   @id @default(cuid())
+  recipient   String
+  subject     String
+  /// Full HTML or plain-text email body
+  body        String
+  /// "PENDING" | "SENT" | "FAILED" | "PERMANENTLY_FAILED"
+  status      String   @default("PENDING")
+  /// Number of send attempts made so far
+  attempts    Int      @default(0)
+  /// When to next attempt sending (exponential backoff: 1 min, 5 min, 15 min)
+  nextRetryAt DateTime @default(now())
+  /// Optional: link to related appointment for tracing
+  appointmentId String?
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("email_logs")
+}
+
+model MedicationReminder {
+  id            String   @id @default(cuid())
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  medicine      String
+  dosage        String
+  /// Original frequency string from prescription: "twice daily", "every 8 hours", etc.
+  frequency     String
+  /// Next scheduled send time
+  nextDueAt     DateTime
+  /// Whether reminder has been sent
+  sent          Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("medication_reminders")
+}
