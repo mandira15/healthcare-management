@@ -61,6 +61,12 @@ model DoctorProfile {
   bio                String?
   clinicName         String?
   clinicAddress      String?
+  address            String?
+  city               String?
+  state              String?
+  postalCode         String?
+  latitude           Float?
+  longitude          Float?
   phone              String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt

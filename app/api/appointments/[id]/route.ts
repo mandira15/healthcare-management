@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { queueEmail, buildCancellationEmail } from '@/lib/mailer';
 import { updateCalendarEvent, deleteCalendarEvent } from '@/lib/googleCalendar';
+import { safeJsonParse } from '@/lib/safeJson';
 
 // GET /api/appointments/[id]
 export async function GET(
@@ -35,13 +36,12 @@ export async function GET(
     ) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-
-    // Parse JSON fields before returning
+    // Parse JSON fields safely before returning
     const parsed = {
       ...appt,
-      preVisitSummary: appt.preVisitSummary ? JSON.parse(appt.preVisitSummary) : null,
-      postVisitSummary: appt.postVisitSummary ? JSON.parse(appt.postVisitSummary) : null,
-      prescription: appt.prescription ? JSON.parse(appt.prescription) : null,
+      preVisitSummary: appt.preVisitSummary ? safeJsonParse(appt.preVisitSummary, null) : null,
+      postVisitSummary: appt.postVisitSummary ? safeJsonParse(appt.postVisitSummary, null) : null,
+      prescription: appt.prescription ? safeJsonParse(appt.prescription, null) : null,
     };
 
     return NextResponse.json({ appointment: parsed });

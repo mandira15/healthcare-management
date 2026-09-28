@@ -18,7 +18,18 @@ export default function AdminDoctorsPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', password: '', specialization: '', slotDurationMinutes: 30 });
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    specialization: '',
+    slotDurationMinutes: 30,
+    clinicName: '',
+    clinicAddress: '',
+    city: '',
+    latitude: '',
+    longitude: '',
+  });
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -38,16 +49,46 @@ export default function AdminDoctorsPage() {
     setCreating(true);
     setError('');
     setSuccess('');
+
+    const payload: any = {
+      name: form.name,
+      email: form.email,
+      password: form.password,
+      specialization: form.specialization,
+      slotDurationMinutes: form.slotDurationMinutes,
+      clinicName: form.clinicName || undefined,
+      clinicAddress: form.clinicAddress || undefined,
+      city: form.city || undefined,
+    };
+
+    if (form.latitude && !isNaN(Number(form.latitude))) {
+      payload.latitude = Number(form.latitude);
+    }
+    if (form.longitude && !isNaN(Number(form.longitude))) {
+      payload.longitude = Number(form.longitude);
+    }
+
     const res = await fetch('/api/doctors', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     if (!res.ok) { setError(data.error ?? 'Failed to create doctor'); }
     else {
       setSuccess(`Dr. ${form.name} created successfully`);
-      setForm({ name: '', email: '', password: '', specialization: '', slotDurationMinutes: 30 });
+      setForm({
+        name: '',
+        email: '',
+        password: '',
+        specialization: '',
+        slotDurationMinutes: 30,
+        clinicName: '',
+        clinicAddress: '',
+        city: '',
+        latitude: '',
+        longitude: '',
+      });
       setShowForm(false);
       await loadDoctors();
     }
@@ -67,7 +108,7 @@ export default function AdminDoctorsPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Doctors ({doctors.length})</h2>
-            <p className="text-sm text-gray-500">Create and manage doctor accounts</p>
+            <p className="text-sm text-gray-500">Create and manage doctor accounts & locations</p>
           </div>
           <button onClick={() => setShowForm(!showForm)} className="btn-primary">
             {showForm ? 'Cancel' : '+ Add Doctor'}
@@ -81,28 +122,40 @@ export default function AdminDoctorsPage() {
         {showForm && (
           <div className="card mb-6">
             <h3 className="font-semibold text-gray-900 mb-4">New Doctor Account</h3>
-            <form onSubmit={handleCreate} className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
-                { key: 'name', label: 'Full Name', type: 'text' },
-                { key: 'email', label: 'Email', type: 'email' },
-                { key: 'password', label: 'Password', type: 'password' },
-                { key: 'specialization', label: 'Specialization', type: 'text' },
-              ].map(({ key, label, type }) => (
+                { key: 'name', label: 'Full Name', type: 'text', required: true },
+                { key: 'email', label: 'Email', type: 'email', required: true },
+                { key: 'password', label: 'Password (min 8 chars)', type: 'password', required: true },
+                { key: 'specialization', label: 'Specialization', type: 'text', required: true },
+                { key: 'clinicName', label: 'Clinic / Hospital Name', type: 'text', required: false },
+                { key: 'clinicAddress', label: 'Address', type: 'text', required: false },
+                { key: 'city', label: 'City', type: 'text', required: false },
+                { key: 'latitude', label: 'Latitude (e.g. 23.23)', type: 'number', required: false, step: 'any' },
+                { key: 'longitude', label: 'Longitude (e.g. 77.43)', type: 'number', required: false, step: 'any' },
+              ].map(({ key, label, type, required, step }: any) => (
                 <div key={key}>
-                  <label className="label">{label}</label>
-                  <input type={type} required className="input"
-                    value={form[key as keyof typeof form] as string}
-                    onChange={e => setForm({ ...form, [key]: e.target.value })} />
+                  <label className="label text-xs">
+                    {label} {required && <span className="text-red-500">*</span>}
+                  </label>
+                  <input
+                    type={type}
+                    required={required}
+                    step={step}
+                    className="input text-xs"
+                    value={(form as any)[key] ?? ''}
+                    onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                  />
                 </div>
               ))}
               <div>
-                <label className="label">Slot Duration (min)</label>
-                <select className="input" value={form.slotDurationMinutes}
+                <label className="label text-xs">Slot Duration (min)</label>
+                <select className="input text-xs" value={form.slotDurationMinutes}
                   onChange={e => setForm({ ...form, slotDurationMinutes: Number(e.target.value) })}>
                   {[15, 20, 30, 45, 60].map(d => <option key={d} value={d}>{d} min</option>)}
                 </select>
               </div>
-              <div className="col-span-2">
+              <div className="col-span-1 sm:col-span-2">
                 <button type="submit" disabled={creating} className="btn-primary">
                   {creating ? 'Creating…' : 'Create Doctor'}
                 </button>

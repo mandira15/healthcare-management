@@ -77,8 +77,17 @@ export default function PatientDashboard() {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-4 mb-8">
-          <Link href="/patient/book" className="btn-primary">+ Book Appointment</Link>
+        <div className="flex flex-wrap gap-4 mb-8">
+          <Link
+            href="/patient/doctors/nearby"
+            className="btn-primary bg-sky-600 hover:bg-sky-700 flex items-center gap-2 text-sm py-2.5 px-5 shadow-sm"
+          >
+            <span>📍</span>
+            <span>Find Doctors Near Me</span>
+          </Link>
+          <Link href="/patient/book" className="btn-secondary text-sm py-2.5 px-5">
+            + Book Appointment
+          </Link>
         </div>
 
         {/* Upcoming */}

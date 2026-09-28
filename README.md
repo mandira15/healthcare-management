@@ -21,6 +21,7 @@ A full-stack healthcare scheduling platform built with **Next.js 14 App Router**
 | Medication reminder cron | ✅ |
 | Leave-conflict cancellation transaction | ✅ |
 | Google Calendar OAuth2 sync | ✅ |
+| Find Best Doctors Nearby (Geolocation & Map) | ✅ |
 
 > **Note:** Google Calendar integration is the safest feature to descope if you run into quota or time issues. All booking/cancellation/reschedule logic works correctly without it — Calendar events are created asynchronously and skipped gracefully if the user hasn't connected their Google account.
 

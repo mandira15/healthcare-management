@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 interface Doctor {
@@ -24,8 +24,11 @@ interface Slot {
 
 type Step = 'doctor' | 'slot' | 'symptoms' | 'confirm';
 
-export default function BookAppointmentPage() {
+function BookContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedDoctorId = searchParams.get('doctorId');
+
   const [step, setStep] = useState<Step>('doctor');
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
@@ -39,8 +42,20 @@ export default function BookAppointmentPage() {
   const [slotError, setSlotError] = useState('');
 
   useEffect(() => {
-    fetch('/api/doctors').then(r => r.json()).then(d => setDoctors(d.doctors ?? []));
-  }, []);
+    fetch('/api/doctors')
+      .then((r) => r.json())
+      .then((d) => {
+        const docList = d.doctors ?? [];
+        setDoctors(docList);
+        if (preselectedDoctorId) {
+          const match = docList.find((doc: Doctor) => doc.id === preselectedDoctorId);
+          if (match) {
+            setSelectedDoctor(match);
+            setStep('slot');
+          }
+        }
+      });
+  }, [preselectedDoctorId]);
 
   async function loadSlots(doctorId: string, date: string) {
     if (!date) return;
@@ -226,5 +241,19 @@ export default function BookAppointmentPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function BookAppointmentPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="animate-spin rounded-full h-8 w-8 border-4 border-primary-600 border-t-transparent"></div>
+        </div>
+      }
+    >
+      <BookContent />
+    </Suspense>
   );
 }

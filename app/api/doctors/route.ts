@@ -54,6 +54,12 @@ const CreateDoctorSchema = z.object({
   bio: z.string().optional(),
   clinicName: z.string().optional(),
   clinicAddress: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  postalCode: z.string().optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
   phone: z.string().optional(),
 });
 
@@ -72,7 +78,8 @@ export async function POST(req: NextRequest) {
 
     const {
       email, password, name, specialization,
-      slotDurationMinutes, workingHours, bio, clinicName, clinicAddress, phone,
+      slotDurationMinutes, workingHours, bio, clinicName, clinicAddress,
+      address, city, state, postalCode, latitude, longitude, phone,
     } = parsed.data;
 
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -96,6 +103,12 @@ export async function POST(req: NextRequest) {
             bio: bio ?? null,
             clinicName: clinicName ?? null,
             clinicAddress: clinicAddress ?? null,
+            address: address ?? null,
+            city: city ?? null,
+            state: state ?? null,
+            postalCode: postalCode ?? null,
+            latitude: latitude ?? null,
+            longitude: longitude ?? null,
             phone: phone ?? null,
           },
         },

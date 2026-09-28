@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { generatePreVisitSummary } from '@/lib/gemini';
+import { safeJsonParse } from '@/lib/safeJson';
 
 // POST /api/appointments/[id]/pre-visit
 // Triggers (or retries) the Gemini pre-visit AI summary.
@@ -78,7 +79,7 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const summary = appt.preVisitSummary ? JSON.parse(appt.preVisitSummary) : null;
+    const summary = appt.preVisitSummary ? safeJsonParse(appt.preVisitSummary, null) : null;
     const aiAvailable = summary && !('error' in summary);
     return NextResponse.json({ summary, aiAvailable, symptomText: appt.symptomText });
   } catch (err) {

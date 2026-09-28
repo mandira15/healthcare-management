@@ -11,6 +11,13 @@ interface DoctorProfile {
   leaveDates: string;
   bio?: string;
   clinicName?: string;
+  clinicAddress?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
@@ -27,6 +34,16 @@ export default function DoctorSchedulePage() {
   const [leaveDates, setLeaveDates] = useState<string[]>([]);
   const [newLeave, setNewLeave] = useState('');
   const [slotDuration, setSlotDuration] = useState(30);
+
+  // Location fields
+  const [clinicName, setClinicName] = useState('');
+  const [clinicAddress, setClinicAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [stateName, setStateName] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
+
   const [saving, setSaving] = useState(false);
   const [addingLeave, setAddingLeave] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -43,6 +60,13 @@ export default function DoctorSchedulePage() {
         setWorkingHours(JSON.parse(p.workingHours || '{}'));
         setLeaveDates(JSON.parse(p.leaveDates || '[]'));
         setSlotDuration(p.slotDurationMinutes ?? 30);
+        setClinicName(p.clinicName || '');
+        setClinicAddress(p.clinicAddress || p.address || '');
+        setCity(p.city || '');
+        setStateName(p.state || '');
+        setPostalCode(p.postalCode || '');
+        setLatitude(p.latitude !== null && p.latitude !== undefined ? p.latitude.toString() : '');
+        setLongitude(p.longitude !== null && p.longitude !== undefined ? p.longitude.toString() : '');
       });
     });
   }, [router]);
@@ -64,10 +88,23 @@ export default function DoctorSchedulePage() {
     setSaving(true);
     setSaved(false);
     setError('');
+    const payload: any = {
+      workingHours,
+      slotDurationMinutes: slotDuration,
+      clinicName: clinicName || null,
+      clinicAddress: clinicAddress || null,
+      address: clinicAddress || null,
+      city: city || null,
+      state: stateName || null,
+      postalCode: postalCode || null,
+      latitude: latitude && !isNaN(Number(latitude)) ? Number(latitude) : null,
+      longitude: longitude && !isNaN(Number(longitude)) ? Number(longitude) : null,
+    };
+
     const res = await fetch(`/api/doctors/${userId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ workingHours, slotDurationMinutes: slotDuration }),
+      body: JSON.stringify(payload),
     });
     if (res.ok) setSaved(true);
     else setError('Failed to save');
@@ -118,6 +155,90 @@ export default function DoctorSchedulePage() {
             <select className="input w-32" value={slotDuration} onChange={e => setSlotDuration(Number(e.target.value))}>
               {[15, 20, 30, 45, 60].map(d => <option key={d} value={d}>{d} min</option>)}
             </select>
+          </div>
+        </div>
+
+        {/* Clinic Location & Coordinates */}
+        <div className="card">
+          <h2 className="font-semibold text-gray-900 mb-1">Clinic & Location Information</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Providing your clinic address and coordinates allows nearby patients to discover you via &ldquo;Find Doctors Near Me&rdquo;.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="label text-xs">Clinic / Hospital Name</label>
+              <input
+                type="text"
+                className="input text-xs"
+                placeholder="e.g. City Central Clinic"
+                value={clinicName}
+                onChange={(e) => setClinicName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label text-xs">Street Address</label>
+              <input
+                type="text"
+                className="input text-xs"
+                placeholder="e.g. 42 Arera Hills"
+                value={clinicAddress}
+                onChange={(e) => setClinicAddress(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label text-xs">City</label>
+              <input
+                type="text"
+                className="input text-xs"
+                placeholder="e.g. Bhopal"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label text-xs">State</label>
+              <input
+                type="text"
+                className="input text-xs"
+                placeholder="e.g. Madhya Pradesh"
+                value={stateName}
+                onChange={(e) => setStateName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label text-xs">Postal Code</label>
+              <input
+                type="text"
+                className="input text-xs"
+                placeholder="e.g. 462011"
+                value={postalCode}
+                onChange={(e) => setPostalCode(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="label text-xs">Latitude</label>
+                <input
+                  type="number"
+                  step="any"
+                  className="input text-xs"
+                  placeholder="23.23"
+                  value={latitude}
+                  onChange={(e) => setLatitude(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="label text-xs">Longitude</label>
+                <input
+                  type="number"
+                  step="any"
+                  className="input text-xs"
+                  placeholder="77.43"
+                  value={longitude}
+                  onChange={(e) => setLongitude(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
         </div>
 

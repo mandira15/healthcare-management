@@ -4,6 +4,24 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+interface PreVisitSummary {
+  urgencyLevel?: string;
+  chiefComplaint?: string;
+  preliminaryCare?: {
+    alopathy?: {
+      immediateSteps?: string[];
+      warningSigns?: string[];
+    };
+    ayurveda?: {
+      homeRemedies?: string[];
+      dietaryAdvice?: string[];
+    };
+  };
+  suggestedQuestions?: string[];
+  disclaimer?: string;
+  error?: string;
+}
+
 interface AppointmentDetail {
   id: string;
   date: string;
@@ -11,12 +29,7 @@ interface AppointmentDetail {
   endTime: string;
   status: string;
   symptomText?: string;
-  preVisitSummary: {
-    urgencyLevel?: string;
-    chiefComplaint?: string;
-    suggestedQuestions?: string[];
-    error?: string;
-  } | null;
+  preVisitSummary: PreVisitSummary | null;
   postVisitSummary: {
     summary?: string;
     medicationSchedule?: Array<{ medicine: string; dosage: string; frequency: string }>;
@@ -87,7 +100,9 @@ export default function PatientAppointmentDetail() {
         <div className="card">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Dr. {appt.doctor.name}</h2>
+              <h2 className="text-xl font-bold text-gray-900">
+                {appt.doctor.name.startsWith('Dr.') ? appt.doctor.name : `Dr. ${appt.doctor.name}`}
+              </h2>
               <p className="text-gray-500">{appt.doctor.doctorProfile?.specialization}</p>
             </div>
             <span className={`text-xs font-medium px-3 py-1 rounded-full ${
@@ -118,10 +133,25 @@ export default function PatientAppointmentDetail() {
         {/* Pre-visit AI Summary */}
         {appt.symptomText && (
           <div className="card">
-            <h3 className="font-semibold text-gray-900 mb-3">🤖 Pre-Visit AI Summary</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <span>🤖</span> Pre-Visit AI Summary
+              </h3>
+              {preVisit && !preAIFailed && (
+                <button
+                  onClick={retryPreVisitAI}
+                  disabled={retryingAI}
+                  className="text-xs text-primary-600 hover:text-primary-700 font-medium hover:underline flex items-center gap-1"
+                >
+                  {retryingAI ? 'Refreshing…' : '↻ Refresh Analysis'}
+                </button>
+              )}
+            </div>
+
             {!preVisit && (
               <p className="text-gray-500 text-sm">AI summary is being generated…</p>
             )}
+
             {preAIFailed && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <p className="text-yellow-800 text-sm mb-3">
@@ -132,27 +162,157 @@ export default function PatientAppointmentDetail() {
                 </button>
               </div>
             )}
+
             {preVisit && !preAIFailed && 'urgencyLevel' in preVisit && (
-              <div className="space-y-4">
-                <div className={`inline-flex items-center px-3 py-1 rounded-full border text-sm font-medium ${urgencyColor[preVisit.urgencyLevel ?? 'Low']}`}>
-                  Urgency: {preVisit.urgencyLevel}
+              <div className="space-y-5">
+                <div className="flex items-center gap-3">
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full border text-xs font-semibold ${urgencyColor[preVisit.urgencyLevel ?? 'Low']}`}>
+                    Urgency: {preVisit.urgencyLevel}
+                  </span>
                 </div>
+
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Chief Complaint</p>
-                  <p className="text-gray-800">{preVisit.chiefComplaint}</p>
+                  <p className="text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">Chief Complaint</p>
+                  <p className="text-gray-900 font-medium">{preVisit.chiefComplaint}</p>
                 </div>
-                {preVisit.suggestedQuestions && (
-                  <div>
-                    <p className="text-sm text-gray-500 mb-2">Suggested Questions for Your Doctor</p>
-                    <ul className="space-y-1">
+
+                {/* Preliminary Steps Before Reaching Doctor: Allopathy & Ayurveda */}
+                {preVisit.preliminaryCare ? (
+                  <div className="pt-3 border-t border-gray-100 space-y-3">
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                        <span>🛡️</span> Preliminary Steps Before Reaching Doctor
+                      </h4>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Supportive home care and relief guidelines while waiting for your appointment:
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Allopathy Card */}
+                      <div className="bg-gradient-to-br from-blue-50/70 to-indigo-50/50 border border-blue-200/80 rounded-xl p-4 flex flex-col justify-between shadow-sm">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <span className="p-1.5 bg-blue-100 text-blue-700 rounded-lg text-base leading-none">💊</span>
+                            <div>
+                              <h5 className="font-semibold text-blue-950 text-sm">Allopathy (Modern Care)</h5>
+                              <p className="text-[11px] text-blue-700">Clinical relief & monitoring</p>
+                            </div>
+                          </div>
+
+                          {preVisit.preliminaryCare.alopathy?.immediateSteps && preVisit.preliminaryCare.alopathy.immediateSteps.length > 0 && (
+                            <div>
+                              <p className="text-[11px] font-semibold text-blue-900 uppercase tracking-wider mb-1">
+                                Immediate Relief Steps:
+                              </p>
+                              <ul className="space-y-1">
+                                {preVisit.preliminaryCare.alopathy.immediateSteps.map((step, i) => (
+                                  <li key={i} className="text-xs text-blue-950 flex items-start gap-1.5">
+                                    <span className="text-blue-500 font-bold">•</span>
+                                    <span>{step}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {preVisit.preliminaryCare.alopathy?.warningSigns && preVisit.preliminaryCare.alopathy.warningSigns.length > 0 && (
+                            <div className="pt-2 border-t border-blue-200/60">
+                              <p className="text-[11px] font-semibold text-red-700 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                <span>⚠️</span> Red-Flag Warning Signs:
+                              </p>
+                              <ul className="space-y-1">
+                                {preVisit.preliminaryCare.alopathy.warningSigns.map((sign, i) => (
+                                  <li key={i} className="text-xs text-red-900 bg-red-50/90 border border-red-100 rounded px-2 py-1 flex items-start gap-1.5">
+                                    <span className="text-red-500 font-bold">!</span>
+                                    <span>{sign}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Ayurveda Card */}
+                      <div className="bg-gradient-to-br from-emerald-50/70 to-teal-50/50 border border-emerald-200/80 rounded-xl p-4 flex flex-col justify-between shadow-sm">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <span className="p-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-base leading-none">🌿</span>
+                            <div>
+                              <h5 className="font-semibold text-emerald-950 text-sm">Ayurveda (Holistic Care)</h5>
+                              <p className="text-[11px] text-emerald-700">Herbal remedies & body balance</p>
+                            </div>
+                          </div>
+
+                          {preVisit.preliminaryCare.ayurveda?.homeRemedies && preVisit.preliminaryCare.ayurveda.homeRemedies.length > 0 && (
+                            <div>
+                              <p className="text-[11px] font-semibold text-emerald-900 uppercase tracking-wider mb-1">
+                                Home & Herbal Remedies:
+                              </p>
+                              <ul className="space-y-1">
+                                {preVisit.preliminaryCare.ayurveda.homeRemedies.map((remedy, i) => (
+                                  <li key={i} className="text-xs text-emerald-950 flex items-start gap-1.5">
+                                    <span className="text-emerald-500 font-bold">•</span>
+                                    <span>{remedy}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {preVisit.preliminaryCare.ayurveda?.dietaryAdvice && preVisit.preliminaryCare.ayurveda.dietaryAdvice.length > 0 && (
+                            <div className="pt-2 border-t border-emerald-200/60">
+                              <p className="text-[11px] font-semibold text-emerald-900 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                <span>🥗</span> Dietary & Lifestyle Tips (Pathya):
+                              </p>
+                              <ul className="space-y-1">
+                                {preVisit.preliminaryCare.ayurveda.dietaryAdvice.map((advice, i) => (
+                                  <li key={i} className="text-xs text-emerald-900 bg-white/70 border border-emerald-100 rounded px-2 py-1 flex items-start gap-1.5">
+                                    <span className="text-emerald-600 font-bold">✓</span>
+                                    <span>{advice}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* If appointment was created before this feature, provide button to generate preliminary care */
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center justify-between text-xs text-amber-800">
+                    <span>Ayurvedic and Allopathic preliminary steps can be generated for this appointment.</span>
+                    <button
+                      onClick={retryPreVisitAI}
+                      disabled={retryingAI}
+                      className="px-2.5 py-1 bg-amber-600 text-white rounded font-medium hover:bg-amber-700"
+                    >
+                      {retryingAI ? 'Generating…' : 'Generate Now'}
+                    </button>
+                  </div>
+                )}
+
+                {preVisit.suggestedQuestions && preVisit.suggestedQuestions.length > 0 && (
+                  <div className="pt-3 border-t border-gray-100">
+                    <p className="text-xs font-medium uppercase tracking-wider text-gray-400 mb-2">Suggested Questions for Your Doctor</p>
+                    <ul className="space-y-1.5">
                       {preVisit.suggestedQuestions.map((q, i) => (
                         <li key={i} className="text-sm text-gray-700 flex gap-2">
-                          <span className="text-primary-600 font-medium">{i + 1}.</span> {q}
+                          <span className="text-primary-600 font-medium">{i + 1}.</span>
+                          <span>{q}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
+
+                <div className="pt-2">
+                  <p className="text-[11px] text-gray-500 italic bg-gray-50 border border-gray-200/80 rounded-lg p-2.5">
+                    ℹ️ {preVisit.disclaimer || 'These preliminary steps are for supportive comfort before your appointment and do not replace professional medical evaluation or emergency care.'}
+                  </p>
+                </div>
               </div>
             )}
           </div>

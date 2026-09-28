@@ -31,6 +31,12 @@ const UpdateDoctorSchema = z.object({
   bio: z.string().optional(),
   clinicName: z.string().optional(),
   clinicAddress: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  postalCode: z.string().optional(),
+  latitude: z.number().min(-90).max(90).optional().nullable(),
+  longitude: z.number().min(-180).max(180).optional().nullable(),
   phone: z.string().optional(),
   name: z.string().optional(),
 });
