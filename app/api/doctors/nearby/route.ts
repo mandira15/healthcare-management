@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { calculateDistance } from '@/lib/distance';
 import { getDoctorsAvailabilityBatch } from '@/lib/doctorAvailability';
+import { calculateDoctorRecommendationScore, matchesDoctorSearch } from '@/lib/doctorRanking';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,7 @@ const NearbyQuerySchema = z.object({
   search: z.string().optional(),
   city: z.string().optional(),
   availability: z.enum(['all', 'today', 'week']).optional().default('all'),
-  sortBy: z.enum(['distance', 'availability', 'name']).optional().default('distance'),
+  sortBy: z.enum(['recommended', 'distance', 'availability', 'experience', 'name']).optional().default('recommended'),
 });
 
 export async function GET(req: NextRequest) {
@@ -77,6 +78,8 @@ export async function GET(req: NextRequest) {
             longitude: true,
             bio: true,
             phone: true,
+            experienceYears: true,
+            rating: true,
             slotDurationMinutes: true,
             workingHours: true,
             leaveDates: true,
@@ -103,7 +106,7 @@ export async function GET(req: NextRequest) {
       doctorProfilesMap
     );
 
-    // Compute distance and filter
+    // Compute distance, score and filter
     type ProcessedDoctor = {
       id: string;
       name: string;
@@ -119,11 +122,23 @@ export async function GET(req: NextRequest) {
       longitude: number | null;
       bio: string | null;
       phone: string | null;
+      experienceYears: number | null;
+      rating: number | null;
       distanceKm: number | null;
       availability: {
         type: 'today' | 'tomorrow' | 'week' | 'none';
         label: string;
         badgeClass: string;
+      };
+      score: number;
+      scoreLabel: string;
+      matchPercentage: number;
+      scoreBreakdown: {
+        distance: number | null;
+        relevance: number;
+        availability: number;
+        experience: number | null;
+        rating: number | null;
       };
     };
 
@@ -173,19 +188,33 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
-      // Keyword search across doctor name, specialization, clinic name, address, and city
+      // Search across doctor name, specialization, clinic, address, city, bio, and health concerns
       if (search && search.trim()) {
-        const query = search.toLowerCase();
-        const matchesName = doc.name.toLowerCase().includes(query);
-        const matchesSpec = profile.specialization?.toLowerCase().includes(query);
-        const matchesClinic = profile.clinicName?.toLowerCase().includes(query);
-        const matchesCity = profile.city?.toLowerCase().includes(query);
-        const matchesAddress = profile.address?.toLowerCase().includes(query);
+        const matches = matchesDoctorSearch(search, {
+          name: doc.name,
+          specialization: profile.specialization,
+          clinicName: profile.clinicName,
+          city: profile.city,
+          address: profile.address,
+          bio: profile.bio,
+        });
 
-        if (!matchesName && !matchesSpec && !matchesClinic && !matchesCity && !matchesAddress) {
+        if (!matches) {
           continue;
         }
       }
+
+      // Calculate transparent recommendation score
+      const rec = calculateDoctorRecommendationScore({
+        distanceKm,
+        maxRadiusKm: radiusKm,
+        specialization: profile.specialization,
+        searchConcern: search,
+        selectedSpecialty: specialty,
+        availabilityType: availability.type,
+        experienceYears: profile.experienceYears,
+        rating: profile.rating,
+      });
 
       processed.push({
         id: doc.id,
@@ -202,8 +231,14 @@ export async function GET(req: NextRequest) {
         longitude: profile.longitude,
         bio: profile.bio,
         phone: profile.phone,
+        experienceYears: profile.experienceYears,
+        rating: profile.rating,
         distanceKm: distanceKm !== null ? Number(distanceKm.toFixed(2)) : null,
         availability,
+        score: rec.score,
+        scoreLabel: rec.scoreLabel,
+        matchPercentage: rec.matchPercentage,
+        scoreBreakdown: rec.breakdown,
       });
     }
 
@@ -213,15 +248,13 @@ export async function GET(req: NextRequest) {
     } else if (sortBy === 'availability') {
       const rank: Record<string, number> = { today: 1, tomorrow: 2, week: 3, none: 4 };
       processed.sort((a, b) => rank[a.availability.type] - rank[b.availability.type]);
+    } else if (sortBy === 'experience') {
+      processed.sort((a, b) => (b.experienceYears ?? 0) - (a.experienceYears ?? 0));
     } else if (sortBy === 'name') {
       processed.sort((a, b) => a.name.localeCompare(b.name));
     } else {
-      // Default: if distance is present sort by distance, else sort by name
-      if (hasCoordinates) {
-        processed.sort((a, b) => (a.distanceKm ?? 999999) - (b.distanceKm ?? 999999));
-      } else {
-        processed.sort((a, b) => a.name.localeCompare(b.name));
-      }
+      // Default: 'recommended' sort by recommendation score
+      processed.sort((a, b) => b.score - a.score);
     }
 
     // Extract available specialties list for filter dropdown
@@ -234,6 +267,7 @@ export async function GET(req: NextRequest) {
     ).sort();
 
     return NextResponse.json({
+      success: true,
       doctors: processed,
       totalCount: processed.length,
       radiusKm: hasCoordinates ? radiusKm : null,

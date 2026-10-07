@@ -42,6 +42,7 @@ model User {
   appointmentsAsDoctor  Appointment[] @relation("DoctorAppointments")
   medicationReminders  MedicationReminder[]
   emailLogs            EmailLog[]
+  symptomAnalyses      SymptomAnalysis[]
 
   @@map("users")
 }
@@ -68,6 +69,8 @@ model DoctorProfile {
   latitude           Float?
   longitude          Float?
   phone              String?
+  experienceYears    Int?
+  rating             Float?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -165,4 +168,19 @@ model MedicationReminder {
   updatedAt     DateTime @updatedAt
 
   @@map("medication_reminders")
+}
+
+model SymptomAnalysis {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  symptoms    String   // JSON array of selected symptoms
+  prediction  String   // Top ML predicted condition
+  confidence  Float    // Confidence score (0.0 to 1.0)
+  severity    String?  // mild, moderate, severe
+  duration    String?  // 1 day, 2 days, etc.
+  isRedFlag   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@map("symptom_analyses")
 }

@@ -76,6 +76,59 @@ export default function PatientDashboard() {
           ))}
         </div>
 
+        {/* Recommended Doctors Feature Card */}
+        <div className="card mb-6 bg-gradient-to-r from-emerald-50 via-teal-50 to-sky-50 border border-emerald-200 shadow-xs">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+                🔎
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-base">Find a Doctor</h3>
+                <p className="text-sm text-gray-600 mt-0.5">
+                  Find recommended doctors near your location based on specialization, distance and availability.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/patient/doctors/nearby"
+              className="btn-primary bg-emerald-600 hover:bg-emerald-700 text-sm py-2 px-4 whitespace-nowrap shadow-xs flex items-center gap-1.5 self-stretch sm:self-auto justify-center"
+            >
+              <span>Find Recommended Doctors</span>
+              <span>→</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* Stomach Health Assistant Feature Card (ML Powered) */}
+        <div className="card mb-6 bg-gradient-to-r from-amber-50 via-orange-50 to-rose-50 border border-amber-200 shadow-xs">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-amber-600 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+                🩺
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-gray-900 text-base">Stomach Health Assistant</h3>
+                  <span className="text-[10px] font-bold tracking-wider uppercase bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded">
+                    ML Powered
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 mt-0.5">
+                  Analyze your stomach-related symptoms with our trained Machine Learning model to get preliminary guidance and triage advice.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/patient/stomach-health"
+              className="btn-primary bg-amber-600 hover:bg-amber-700 text-sm py-2 px-4 whitespace-nowrap shadow-xs flex items-center gap-1.5 self-stretch sm:self-auto justify-center"
+            >
+              <span>Analyze Symptoms</span>
+              <span>→</span>
+            </Link>
+          </div>
+        </div>
+
         {/* Actions */}
         <div className="flex flex-wrap gap-4 mb-8">
           <Link
@@ -83,7 +136,7 @@ export default function PatientDashboard() {
             className="btn-primary bg-sky-600 hover:bg-sky-700 flex items-center gap-2 text-sm py-2.5 px-5 shadow-sm"
           >
             <span>📍</span>
-            <span>Find Doctors Near Me</span>
+            <span>Recommended Doctors Near Me</span>
           </Link>
           <Link href="/patient/book" className="btn-secondary text-sm py-2.5 px-5">
             + Book Appointment

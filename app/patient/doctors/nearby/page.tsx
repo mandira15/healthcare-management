@@ -43,7 +43,7 @@ export default function FindNearbyDoctorsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'today' | 'week'>('all');
-  const [sortBy, setSortBy] = useState<'distance' | 'availability' | 'name'>('distance');
+  const [sortBy, setSortBy] = useState<'recommended' | 'distance' | 'availability' | 'experience' | 'name'>('recommended');
   const [cityInput, setCityInput] = useState('');
 
   // Dropdown options
@@ -181,14 +181,17 @@ export default function FindNearbyDoctorsPage() {
         <div className="bg-gradient-to-r from-primary-600 to-sky-700 rounded-2xl p-6 sm:p-8 text-white mb-6 shadow-sm relative overflow-hidden">
           <div className="relative z-10 max-w-2xl">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-medium mb-3">
-              <span>📍</span> Geolocation-Powered Discovery
+              <span>📍</span> Smart Healthcare Discovery
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-2">
-              Find Doctors Near You
+              Recommended Doctors Near You
             </h2>
-            <p className="text-primary-100 text-sm sm:text-base leading-relaxed mb-6">
-              Discover verified doctors and clinics based on your exact location, specialty, and
-              real-time appointment availability.
+            <p className="text-primary-100 text-sm sm:text-base leading-relaxed mb-4">
+              Discover verified doctors and clinics tailored to your location, health concern,
+              specialization, and real-time appointment availability.
+            </p>
+            <p className="text-xs text-white/80 bg-white/10 backdrop-blur-md rounded-lg px-3 py-1.5 mb-6 max-w-xl border border-white/15">
+              ℹ️ Recommendations are based on available doctor information such as specialization, location, distance, experience, and appointment availability.
             </p>
 
             {/* Geolocation Button & Status */}
@@ -226,23 +229,22 @@ export default function FindNearbyDoctorsPage() {
             {/* Geolocation Notices */}
             {geoStatus === 'denied' && (
               <div className="mt-4 p-3 bg-red-500/20 backdrop-blur-md border border-red-300/40 rounded-xl text-xs text-white max-w-lg">
-                ⚠️ Location access was denied. You can search doctors by city or specialty using the
-                search filters below.
+                ⚠️ Location access was not provided. Search using your city, area or pincode below.
               </div>
             )}
             {geoStatus === 'unavailable' && (
               <div className="mt-4 p-3 bg-amber-500/20 backdrop-blur-md border border-amber-300/40 rounded-xl text-xs text-white max-w-lg">
-                ⚠️ Location is currently unavailable on your device. Please search by city below.
+                ⚠️ Location is currently unavailable on your device. Please search by city, area, or pincode below.
               </div>
             )}
             {geoStatus === 'timeout' && (
               <div className="mt-4 p-3 bg-amber-500/20 backdrop-blur-md border border-amber-300/40 rounded-xl text-xs text-white max-w-lg">
-                ⚠️ Location request timed out. Please try clicking again or search by city.
+                ⚠️ Location request timed out. Please try clicking again or search by city below.
               </div>
             )}
             {geoStatus === 'unsupported' && (
               <div className="mt-4 p-3 bg-gray-500/20 backdrop-blur-md border border-gray-300/40 rounded-xl text-xs text-white max-w-lg">
-                ⚠️ Your browser does not support geolocation. Please search by city below.
+                ⚠️ Your browser does not support geolocation. Please search by city, area, or pincode below.
               </div>
             )}
           </div>
@@ -251,13 +253,13 @@ export default function FindNearbyDoctorsPage() {
         {/* Search & Filter Bar */}
         <div className="card mb-6 bg-white border border-gray-200 shadow-sm p-4 sm:p-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-            {/* Keyword Search */}
+            {/* Health Concern / Search */}
             <div>
-              <label className="label text-xs">Search</label>
+              <label className="label text-xs">Search Health Concern / Doctor</label>
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Doctor name, clinic, etc."
+                  placeholder="e.g. Chest pain, skin, fever, name"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="input pl-8 text-xs"
@@ -266,13 +268,13 @@ export default function FindNearbyDoctorsPage() {
               </div>
             </div>
 
-            {/* City Search Fallback */}
+            {/* City / Area / Pincode Fallback */}
             <div>
-              <label className="label text-xs">City / Area</label>
+              <label className="label text-xs">City / Area / Pincode</label>
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="e.g. Bhopal, Delhi"
+                  placeholder="e.g. Bhopal, 462011"
                   value={cityInput}
                   onChange={(e) => setCityInput(e.target.value)}
                   className="input pl-8 text-xs"
@@ -283,13 +285,13 @@ export default function FindNearbyDoctorsPage() {
 
             {/* Specialty Dropdown */}
             <div>
-              <label className="label text-xs">Specialty</label>
+              <label className="label text-xs">Specialization</label>
               <select
                 value={selectedSpecialty}
                 onChange={(e) => setSelectedSpecialty(e.target.value)}
                 className="input text-xs"
               >
-                <option value="">All Specialties</option>
+                <option value="">All Specializations</option>
                 {availableSpecialties.map((spec) => (
                   <option key={spec} value={spec}>
                     {spec}
@@ -315,12 +317,12 @@ export default function FindNearbyDoctorsPage() {
             </div>
           </div>
 
-          {/* Secondary Controls: Radius, Sort & View Toggle */}
+          {/* Secondary Controls: Radius, Sort, Find Doctors button & View Toggle */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-100">
             <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600">
               {/* Radius Filter */}
               <div className="flex items-center gap-1.5">
-                <span className="font-medium text-gray-700">Radius:</span>
+                <span className="font-medium text-gray-700">Max Distance:</span>
                 <select
                   value={radiusKm}
                   onChange={(e) => setRadiusKm(Number(e.target.value))}
@@ -342,17 +344,30 @@ export default function FindNearbyDoctorsPage() {
                 <select
                   value={sortBy}
                   onChange={(e) =>
-                    setSortBy(e.target.value as 'distance' | 'availability' | 'name')
+                    setSortBy(e.target.value as 'recommended' | 'distance' | 'availability' | 'experience' | 'name')
                   }
                   className="border border-gray-300 rounded-lg px-2 py-1 bg-white text-xs"
                 >
+                  <option value="recommended">✨ Best Match (Recommended)</option>
                   <option value="distance" disabled={!userLocation}>
-                    Nearest First {!userLocation && '(Need Location)'}
+                    📍 Nearest First {!userLocation && '(Need Location)'}
                   </option>
-                  <option value="availability">Available Soon</option>
-                  <option value="name">Doctor Name</option>
+                  <option value="availability">🕒 Available Soon</option>
+                  <option value="experience">💼 Most Experienced</option>
+                  <option value="name">🔤 Doctor Name (A-Z)</option>
                 </select>
               </div>
+
+              {/* Find Doctors Button */}
+              <button
+                type="button"
+                onClick={() => fetchDoctors(userLocation)}
+                disabled={loading}
+                className="btn-primary text-xs py-1.5 px-3.5 flex items-center gap-1"
+              >
+                <span>🔍</span>
+                <span>{loading ? 'Searching…' : 'Find Doctors'}</span>
+              </button>
             </div>
 
             {/* View Mode Toggle: List vs Map */}

@@ -1,0 +1,103 @@
+{
+  "model_name": "Logistic Regression",
+  "features": [
+    "abdominal_pain",
+    "bloating",
+    "gas",
+    "nausea",
+    "vomiting",
+    "heartburn",
+    "acid_reflux",
+    "diarrhea",
+    "constipation",
+    "loss_of_appetite",
+    "indigestion",
+    "cramping",
+    "fever",
+    "belching",
+    "watery_stool",
+    "hard_stool",
+    "early_satiety",
+    "stomach_burning"
+  ],
+  "classes": [
+    "Constipation",
+    "Food Poisoning",
+    "GERD",
+    "Gastritis",
+    "Gastroenteritis",
+    "Irritable Bowel Syndrome",
+    "Peptic Ulcer Disease"
+  ],
+  "metrics": {
+    "accuracy": 0.8786,
+    "precision": 0.8987,
+    "recall": 0.8786,
+    "f1_score": 0.8752
+  },
+  "confusion_matrix": [
+    [
+      19,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      19,
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      20,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      11,
+      0,
+      0,
+      9
+    ],
+    [
+      0,
+      3,
+      0,
+      0,
+      17,
+      0,
+      0
+    ],
+    [
+      2,
+      0,
+      0,
+      0,
+      0,
+      18,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      19
+    ]
+  ]
+}

@@ -19,7 +19,12 @@ export interface NearbyDoctor {
   longitude: number | null;
   bio: string | null;
   phone: string | null;
+  experienceYears?: number | null;
+  rating?: number | null;
   distanceKm: number | null;
+  score?: number;
+  scoreLabel?: string;
+  matchPercentage?: number;
   availability: {
     type: 'today' | 'tomorrow' | 'week' | 'none';
     label: string;
@@ -45,8 +50,26 @@ export default function DoctorNearbyCard({
     .join(', ');
 
   return (
-    <div className="card hover:shadow-md transition-all duration-200 border border-gray-100 flex flex-col justify-between h-full bg-white">
+    <div className="card hover:shadow-md transition-all duration-200 border border-gray-100 flex flex-col justify-between h-full bg-white relative">
       <div>
+        {/* Match Recommendation Tag */}
+        {typeof doctor.matchPercentage === 'number' && (
+          <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-gray-100">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+              <span>✨</span>
+              <span>{doctor.matchPercentage}% Match</span>
+              <span className="text-emerald-500 font-normal">·</span>
+              <span className="font-medium text-emerald-700">{doctor.scoreLabel || 'Recommended'}</span>
+            </span>
+            {typeof doctor.rating === 'number' && (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                <span>⭐</span>
+                <span>{doctor.rating.toFixed(1)}</span>
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Header: Name, Specialty & Distance */}
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-3">
@@ -89,8 +112,8 @@ export default function DoctorNearbyCard({
           )}
         </div>
 
-        {/* Availability Badge */}
-        <div className="mt-2 mb-3">
+        {/* Badges: Availability & Experience */}
+        <div className="mt-2 mb-3 flex flex-wrap items-center gap-2">
           <span
             className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full border ${doctor.availability.badgeClass}`}
           >
@@ -107,6 +130,13 @@ export default function DoctorNearbyCard({
             />
             {doctor.availability.label}
           </span>
+
+          {typeof doctor.experienceYears === 'number' && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">
+              <span>💼</span>
+              <span>{doctor.experienceYears} yrs exp</span>
+            </span>
+          )}
         </div>
 
         {/* Clinic & Address */}
